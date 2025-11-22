@@ -54,6 +54,8 @@ module.exports = function(app) {
 
   app.post(config.api_url+'/login/', handlers.auth.login);
 
+  app.post(config.api_url+'/register/', handlers.auth.register);
+
   app.get(config.api_url+'/verify/:apikey', handlers.auth.auth, handlers.auth.verifyUser);
 
 /* User */

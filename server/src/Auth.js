@@ -1,16 +1,15 @@
 var crypto = require('crypto');
 var jwt = require('jsonwebtoken');
 var bcrypt = require('bcryptjs');
-var User = require("../models/UserSchema")
+var UserModel = require("../models/UserSchema")
 
 var handler = function() {
   this.login = login;
+  this.register = register;
   this.auth = auth;
   this.authAdmin = authAdmin;
   this.verifyUser = verify;
 };
-
-var UserModel = mongoose.model('User', User);
 
 
 /**
@@ -111,6 +110,45 @@ function authAdmin(req, res, next) {
 
 
 
+
+function register(req, res) {
+  if (!req.body.mail || !req.body.pass || !req.body.name) {
+    return res.status(400).json({ status: 400, message: "Email, password and name required" });
+  }
+
+  UserModel.findOne({ mail: req.body.mail }, function(err, existingUser) {
+    if (existingUser) {
+      return res.status(409).json({ status: 409, message: "User already exists" });
+    }
+
+    var salt = bcrypt.genSaltSync(10);
+    var password = bcrypt.hashSync(req.body.pass, salt);
+
+    var user = new UserModel({
+      mail: req.body.mail,
+      pass: password,
+      name: req.body.name,
+      permission: 1
+    });
+
+    user.save(function(err, savedUser) {
+      if (err) {
+        return res.status(500).json({ status: 500, message: "Registration failed" });
+      }
+
+      var token = jwt.sign({user: savedUser._id, permission: savedUser.permission}, config.secret, {
+        expiresIn: config.jwtexpires
+      });
+
+      res.status(201).json({
+        status: 201,
+        message: "User registered successfully",
+        apikey: token,
+        user_id: savedUser._id
+      });
+    });
+  });
+}
 
 function verify(req, res) {
 

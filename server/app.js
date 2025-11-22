@@ -15,7 +15,7 @@ Cache = require("./cache.js")
 * Database connection
 */
 mongoose = require('mongoose')
-mongoose.Promise = global.Promise;
+mongoose.set('strictQuery', false);
 mongoose.connect(config.db);
 
 cache = require("./lib/cache")
@@ -32,10 +32,11 @@ app.use(bodyParser.urlencoded({
 * Set logger
 */
 var winston = require('winston');
-winston.add(winston.transports.File, {
-  filename: __dirname+'/logs/error.log'
+winston.configure({
+  transports: [
+    new winston.transports.File({ filename: __dirname+'/logs/error.log' })
+  ]
 });
-winston.remove(winston.transports.Console);
 
 
 
@@ -59,11 +60,17 @@ app.set('json spaces', 2);
 app.options('*', cors());
 
 
-//Remove Express.js header
+//Remove Express.js header and set CORS
 app.use(function(req, res, next) {
   res.removeHeader("X-Powered-By");
   res.header('Access-Control-Allow-Origin', '*');
-  next();
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, x-access-token');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
 });
 
 
@@ -85,13 +92,12 @@ app.use(function(req, res, next) {
 
 
 /**
- * Initializing router
+ * Initializing router FIRST
  * @type {*|exports|module.exports}
  */
 
 var routes = require("./router.js");
 router = new routes(app);
-
 
 /**
  * Browser
@@ -100,7 +106,7 @@ router = new routes(app);
 var Filer = require("./lib/filer.js");
 filer = new Filer(app);
 
- var client = require("./client.js");
+var client = require("./client.js");
 client = new client(app);
 
 
